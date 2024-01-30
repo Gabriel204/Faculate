@@ -1,0 +1,4 @@
+ld
+st
+sethi
+andcc
