@@ -1,0 +1,154 @@
+using System;
+using System.Numerics;
+using System.Security.Cryptography;
+
+class RSAAlgorithm
+{
+    static BigInteger GenerateProbablePrime(int bitLength)
+    {
+        RandomNumberGenerator rng = RandomNumberGenerator.Create();
+        byte[] bytes = new byte[(bitLength + 7) / 8];
+
+        BigInteger number;
+        do
+        {
+            rng.GetBytes(bytes);
+            bytes[^1] |= 0x80;
+            bytes[0] |= 1; 
+
+            number = new BigInteger(bytes);
+        } while (!IsProbablePrime(number));
+
+        return number;
+    }
+
+    static bool IsProbablePrime(BigInteger number, int rounds = 10)
+    {
+        if (number < 2 || (number != 2 && number % 2 == 0))
+            return false;
+
+        BigInteger d = number - 1;
+        int s = 0;
+
+        while (d % 2 == 0)
+        {
+            d /= 2;
+            s++;
+        }
+
+        Random rng = new Random();
+
+        for (int i = 0; i < rounds; i++)
+        {
+            BigInteger a = RandomBigInteger(2, number - 2, rng);
+            BigInteger x = ModExp(a, d, number);
+
+            if (x == 1 || x == number - 1)
+                continue;
+
+            bool composite = true;
+            for (int r = 1; r < s; r++)
+            {
+                x = ModExp(x, 2, number);
+                if (x == number - 1)
+                {
+                    composite = false;
+                    break;
+                }
+            }
+
+            if (composite)
+                return false;
+        }
+
+        return true;
+    }
+
+    static BigInteger RandomBigInteger(BigInteger min, BigInteger max, Random rng)
+    {
+        BigInteger range = max - min;
+        byte[] bytes = range.ToByteArray();
+
+        BigInteger result;
+        do
+        {
+            rng.NextBytes(bytes);
+            result = new BigInteger(bytes);
+        } while (result < 0 || result > range);
+
+        return min + result;
+    }
+
+    static BigInteger ModExp(BigInteger baseValue, BigInteger exp, BigInteger mod)
+    {
+        BigInteger result = 1;
+        baseValue = baseValue % mod;
+
+        while (exp > 0)
+        {
+            if ((exp & 1) == 1)
+                result = (result * baseValue) % mod;
+
+            exp >>= 1;
+            baseValue = (baseValue * baseValue) % mod;
+        }
+
+        return result;
+    }
+
+    static (BigInteger gcd, BigInteger x, BigInteger y) ExtendedGCD(BigInteger a, BigInteger b)
+    {
+        if (b == 0)
+            return (a, 1, 0);
+
+        var (gcd, x1, y1) = ExtendedGCD(b, a % b);
+        return (gcd, y1, x1 - (a / b) * y1);
+    }
+
+    static (BigInteger n, BigInteger e, BigInteger d) GenerateKeys(int bitLength)
+    {
+        BigInteger p = GenerateProbablePrime(bitLength / 2);
+        BigInteger q = GenerateProbablePrime(bitLength / 2);
+        BigInteger n = p * q;
+        BigInteger phi = (p - 1) * (q - 1);
+
+        BigInteger e = 65537; // Common choice for e
+        var (gcd, d, _) = ExtendedGCD(e, phi);
+
+        if (gcd != 1)
+            throw new Exception("e and phi are not coprime");
+
+        d = (d % phi + phi) % phi;
+
+        return (n, e, d);
+    }
+
+    static BigInteger Encrypt(BigInteger message, BigInteger e, BigInteger n)
+    {
+        return ModExp(message, e, n);
+    }
+
+    static BigInteger Decrypt(BigInteger cipher, BigInteger d, BigInteger n)
+    {
+        return ModExp(cipher, d, n);
+    }
+
+    static void Main()
+    {
+        int bitLength = 512;
+
+        Console.WriteLine("Generating RSA keys...");
+        var (n, e, d) = GenerateKeys(bitLength);
+        Console.WriteLine($"Public Key: (n={n}, e={e})");
+        Console.WriteLine($"Private Key: (n={n}, d={d})");
+
+        BigInteger message = new BigInteger(Encoding.UTF8.GetBytes("Hello"));
+        Console.WriteLine($"Original Message: {message}");
+
+        BigInteger cipher = Encrypt(message, e, n);
+        Console.WriteLine($"Encrypted Message: {cipher}");
+
+        BigInteger decryptedMessage = Decrypt(cipher, d, n);
+        Console.WriteLine($"Decrypted Message: {Encoding.UTF8.GetString(decryptedMessage.ToByteArray())}");
+    }
+}
