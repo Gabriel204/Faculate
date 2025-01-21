@@ -1,0 +1,69 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class MonoalphabeticCipher
+{
+    string originalAlphabet = "ABCDEFGHIJKLMNOPQRSTUVXYZ";
+    string permutedAlphabet = "MIPODSQWERTYUKGHVZXLNCFV";
+
+    static string Encrypt(string text)
+    {
+        return new string(text.Select(c => 
+            Char.IsLetter(c) && originalAlphabet.Contains(Char.ToUpper(c)) 
+            ? permutedAlphabet[originalAlphabet.IndexOf(Char.ToUpper(c))] 
+            : c 
+        ).ToArray());
+    }
+
+    static string Decrypt(string text)
+    {
+        return new string(text.Select(c => 
+            Char.IsLetter(c) && permutedAlphabet.Contains(Char.ToUpper(c)) 
+            ? originalAlphabet[permutedAlphabet.IndexOf(Char.ToUpper(c))] 
+            : c 
+        ).ToArray());
+    }
+
+    static Dictionary<char, double> LetterFrequencies(string text)
+    {
+        var frequency = new Dictionary<char, double>();
+        int totalLetters = text.Count(char.IsLetter);
+
+        foreach (char c in text.Where(char.IsLetter))
+        {
+            char upper = Char.ToUpper(c);
+            if (frequency.ContainsKey(upper))
+                frequency[upper]++;
+            else
+                frequency[upper] = 1;
+        }
+
+        foreach (var key in frequency.Keys.ToList())
+        {
+            frequency[key] = frequency[key] / totalLetters * 100; 
+        }
+
+        return frequency.OrderByDescending(kv => kv.Value).ToDictionary(kv => kv.Key, kv => kv.Value);
+    }
+
+    static void Main(string[] args)
+    {
+        string plaintext = "EXEMPLU DE TEXT PENTRU CRIPTARE";
+        Console.WriteLine("Text original: " + plaintext);
+
+        string encryptedText = Encrypt(plaintext);
+        Console.WriteLine("Text criptat: " + encryptedText);
+
+        string decryptedText = Decrypt(encryptedText);
+        Console.WriteLine("Text decriptat: " + decryptedText);
+
+        var frequencies = LetterFrequencies(encryptedText);
+        Console.WriteLine("\nFrecvența literelor în textul criptat:");
+        foreach (var kv in frequencies)
+        {
+            Console.WriteLine($"{kv.Key}: {kv.Value:F2}%");
+        }
+    }
+}
+
