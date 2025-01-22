@@ -1,0 +1,73 @@
+using System;
+using System.Text;
+
+class PlusNCipher
+{
+    public static string Encrypt(string plaintext, int n)
+    {
+        StringBuilder ciphertext = new StringBuilder();
+
+        foreach (char c in plaintext)
+        {
+            if (char.IsLetter(c))
+            {
+                char offset = char.IsUpper(c) ? 'A' : 'a';
+                ciphertext.Append((char)((c - offset + n) % 26 + offset));
+            }
+            else
+            {
+                ciphertext.Append(c);
+            }
+        }
+
+        return ciphertext.ToString();
+    }
+
+    public static string Decrypt(string ciphertext, int n)
+    {
+        StringBuilder plaintext = new StringBuilder();
+
+        foreach (char c in ciphertext)
+        {
+            if (char.IsLetter(c))
+            {
+                char offset = char.IsUpper(c) ? 'A' : 'a';
+                plaintext.Append((char)((c - offset - n + 26) % 26 + offset));
+            }
+            else
+            {
+                plaintext.Append(c);
+            }
+        }
+
+        return plaintext.ToString();
+    }
+
+    public static void Cryptanalysis(string ciphertext)
+    {
+        Console.WriteLine("Criptanaliza pentru textul criptat: " + ciphertext);
+        for (int n = 0; n < 26; n++)
+        {
+            string decryptedText = Decrypt(ciphertext, n);
+            Console.WriteLine($"Cheia n = {n}: {decryptedText}");
+        }
+    }
+
+    static void Main(string[] args)
+    {
+        Console.Write("Introduceti textul original: ");
+        string plaintext = Console.ReadLine();
+
+        Console.Write("Introduceti cheia (n): ");
+        int n = int.Parse(Console.ReadLine());
+
+        string encrypted = Encrypt(plaintext, n);
+        Console.WriteLine("Text criptat: " + encrypted);
+
+        string decrypted = Decrypt(encrypted, n);
+        Console.WriteLine("Text decriptat: " + decrypted);
+
+        Console.WriteLine("\nCriptanaliza:");
+        Cryptanalysis(encrypted);
+    }
+}
